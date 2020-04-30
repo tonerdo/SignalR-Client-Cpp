@@ -17,6 +17,7 @@ set (SOURCES
   test_websocket_client.cpp
   url_builder_tests.cpp
   websocket_transport_tests.cpp
+  signalr_default_scheduler_tests.cpp
 )
 
 include_directories(
