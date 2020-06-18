@@ -11,7 +11,6 @@
 #include "trace_level.h"
 #include "log_writer.h"
 #include "signalr_client_config.h"
-#include "scheduler.h"
 
 namespace signalr
 {
