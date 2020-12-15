@@ -3,6 +3,7 @@
 // See the LICENSE file in the project root for more information.
 
 #include "stdafx.h"
+#include "deallocate_helper.h"
 #include "hub_connection_impl.h"
 #include "signalrclient/hub_exception.h"
 #include "trace_log_writer.h"
@@ -27,14 +28,13 @@ namespace signalr
         std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory,
         std::function<void* (size_t)> allocate, std::function<void(void*)> deallocate)
     {
+        auto connection_impl_memory = (hub_connection_impl*)allocate(sizeof(hub_connection_impl));
+        auto connection_impl = new (connection_impl_memory) hub_connection_impl(url, trace_level,
+            log_writer, http_client, websocket_factory, allocate, deallocate);
+
         // std::make_shared doesn't work on private constructors
-        auto connection_impl = (hub_connection_impl*)allocate(sizeof(hub_connection_impl));
-        auto connection = std::shared_ptr<hub_connection_impl>(new (connection_impl) hub_connection_impl(url, trace_level,
-            log_writer, http_client, websocket_factory, allocate, deallocate), [deallocate](void* ptr)
-            {
-                ((hub_connection_impl*)ptr)->~hub_connection_impl();
-                deallocate(ptr);
-            });
+        auto connection = std::shared_ptr<hub_connection_impl>(connection_impl,
+            deallocate_helper<hub_connection_impl>(deallocate));
 
         connection->initialize();
 
