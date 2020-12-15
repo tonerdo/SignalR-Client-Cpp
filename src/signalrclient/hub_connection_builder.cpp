@@ -71,6 +71,14 @@ namespace signalr
         return *this;
     }
 
+    hub_connection_builder& hub_connection_builder::with_memory_allocator(std::function<void* (size_t)> allocate,
+        std::function<void(void*)> deallocate)
+    {
+        m_allocate = allocate;
+        m_deallocate = deallocate;
+        return *this;
+    }
+
     hub_connection hub_connection_builder::build()
     {
 #ifndef USE_CPPRESTSDK
@@ -85,6 +93,21 @@ namespace signalr
         }
 #endif
 
-        return hub_connection(m_url, m_log_level, m_logger, m_http_client, m_websocket_factory);
+        if (m_allocate == nullptr)
+        {
+            m_allocate = [](size_t n)
+            {
+                return ::operator new(n);
+            };
+        }
+        if (m_deallocate == nullptr)
+        {
+            m_deallocate = [](void* ptr)
+            {
+                return ::operator delete(ptr);
+            };
+        }
+
+        return hub_connection(m_url, m_log_level, m_logger, m_http_client, m_websocket_factory, m_allocate, m_deallocate);
     }
 }

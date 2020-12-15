@@ -18,6 +18,7 @@ namespace signalr
     std::shared_ptr<transport> websocket_transport::create(const std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)>& websocket_client_factory,
         const signalr_client_config& signalr_client_config, const logger& logger)
     {
+        // std::make_shared doesn't work on private constructors
         return std::shared_ptr<transport>(
             new websocket_transport(websocket_client_factory, signalr_client_config, logger));
     }

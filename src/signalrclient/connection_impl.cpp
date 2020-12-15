@@ -28,25 +28,9 @@ namespace signalr
     std::shared_ptr<connection_impl> connection_impl::create(const std::string& url, trace_level trace_level, const std::shared_ptr<log_writer>& log_writer,
         std::shared_ptr<http_client> http_client, std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory)
     {
+        // std::make_shared doesn't work on private constructors
         return std::shared_ptr<connection_impl>(new connection_impl(url, trace_level,
             log_writer ? log_writer : std::make_shared<trace_log_writer>(), http_client, websocket_factory));
-    }
-
-    connection_impl::connection_impl(const std::string& url, trace_level trace_level, const std::shared_ptr<log_writer>& log_writer,
-        std::unique_ptr<http_client> http_client, std::unique_ptr<transport_factory> transport_factory)
-        : m_base_url(url), m_connection_state(connection_state::disconnected), m_logger(log_writer, trace_level), m_transport(nullptr),
-        m_transport_factory(std::move(transport_factory)), m_message_received([](const std::string&) noexcept {}), m_disconnected([]() noexcept {})
-    {
-        if (http_client != nullptr)
-        {
-            m_http_client = std::move(http_client);
-        }
-        else
-        {
-#ifdef USE_CPPRESTSDK
-            m_http_client = std::unique_ptr<class http_client>(new default_http_client());
-#endif
-        }
     }
 
     connection_impl::connection_impl(const std::string& url, trace_level trace_level, const std::shared_ptr<log_writer>& log_writer,
@@ -61,7 +45,7 @@ namespace signalr
         else
         {
 #ifdef USE_CPPRESTSDK
-            m_http_client = std::unique_ptr<class http_client>(new default_http_client());
+            m_http_client = std::make_shared<default_http_client>();
 #endif
         }
 

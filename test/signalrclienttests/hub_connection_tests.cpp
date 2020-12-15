@@ -20,6 +20,15 @@ hub_connection create_hub_connection(std::shared_ptr<websocket_client> websocket
         .with_logging(log_writer, trace_level)
         .with_http_client(create_test_http_client())
         .with_websocket_factory([websocket_client](const signalr_client_config&) { return websocket_client; })
+        .with_memory_allocator(
+            [](size_t size)
+            {
+                return malloc(size);
+            },
+            [](void* ptr)
+            {
+                free(ptr);
+            })
         .build();
 }
 

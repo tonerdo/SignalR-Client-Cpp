@@ -56,7 +56,8 @@ namespace signalr
 
         explicit hub_connection(const std::string& url, trace_level trace_level = trace_level::all,
             std::shared_ptr<log_writer> log_writer = nullptr, std::shared_ptr<http_client> http_client = nullptr,
-            std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory = nullptr);
+            std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory = nullptr,
+            std::function<void* (size_t)> allocate = nullptr, std::function<void(void*)> deallocate = nullptr);
 
         std::shared_ptr<hub_connection_impl> m_pImpl;
     };

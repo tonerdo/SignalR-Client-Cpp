@@ -19,6 +19,7 @@ namespace signalr
 
         static std::shared_ptr<completion_event_impl> create()
         {
+            // std::make_shared doesn't work on private constructors
             return std::shared_ptr<completion_event_impl>(new completion_event_impl());
         }
 

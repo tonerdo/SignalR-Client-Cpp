@@ -24,9 +24,17 @@ namespace signalr
 
     std::shared_ptr<hub_connection_impl> hub_connection_impl::create(const std::string& url, trace_level trace_level,
         const std::shared_ptr<log_writer>& log_writer, std::shared_ptr<http_client> http_client,
-        std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory)
+        std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory,
+        std::function<void* (size_t)> allocate, std::function<void(void*)> deallocate)
     {
-        auto connection = std::shared_ptr<hub_connection_impl>(new hub_connection_impl(url, trace_level, log_writer, http_client, websocket_factory));
+        // std::make_shared doesn't work on private constructors
+        auto connection_impl = (hub_connection_impl*)allocate(sizeof(hub_connection_impl));
+        auto connection = std::shared_ptr<hub_connection_impl>(new (connection_impl) hub_connection_impl(url, trace_level,
+            log_writer, http_client, websocket_factory, allocate, deallocate), [deallocate](void* ptr)
+            {
+                ((hub_connection_impl*)ptr)->~hub_connection_impl();
+                deallocate(ptr);
+            });
 
         connection->initialize();
 
@@ -35,7 +43,8 @@ namespace signalr
 
     hub_connection_impl::hub_connection_impl(const std::string& url, trace_level trace_level,
         const std::shared_ptr<log_writer>& log_writer, std::shared_ptr<http_client> http_client,
-        std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory)
+        std::function<std::shared_ptr<websocket_client>(const signalr_client_config&)> websocket_factory,
+        std::function<void* (size_t)> allocate, std::function<void(void*)> deallocate)
         : m_connection(connection_impl::create(url, trace_level, log_writer,
             http_client, websocket_factory)), m_logger(log_writer, trace_level),
         m_callback_manager(signalr::value(std::map<std::string, signalr::value> { { std::string("error"), std::string("connection went out of scope before invocation result was received") } })),
