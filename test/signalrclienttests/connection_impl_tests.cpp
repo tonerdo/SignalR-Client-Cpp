@@ -331,7 +331,7 @@ TEST(connection_impl_start, start_fails_if_transport_connect_throws)
     }
 
     auto log_entries = std::dynamic_pointer_cast<memory_log_writer>(writer)->get_log_entries();
-    ASSERT_TRUE(log_entries.size() > 1);
+    ASSERT_TRUE(log_entries.size() > 1) << dump_vector(log_entries);
 
     auto entry = remove_date_from_log_entry(log_entries[1]);
     ASSERT_EQ("[error       ] transport could not connect due to: connecting failed\n", entry);
@@ -1339,7 +1339,7 @@ TEST(connection_impl_stop, stopping_disconnected_connection_is_no_op)
     ASSERT_EQ(connection_state::disconnected, connection->get_connection_state());
 
     auto log_entries = std::dynamic_pointer_cast<memory_log_writer>(writer)->get_log_entries();
-    ASSERT_EQ(2U, log_entries.size());
+    ASSERT_EQ(2U, log_entries.size()) << dump_vector(log_entries);
     ASSERT_EQ("[info        ] stopping connection\n", remove_date_from_log_entry(log_entries[0]));
     ASSERT_EQ("[info        ] acquired lock in shutdown()\n", remove_date_from_log_entry(log_entries[1]));
 }
@@ -1394,7 +1394,7 @@ TEST(connection_impl_stop, stopping_disconnecting_connection_returns_canceled_ta
     ASSERT_EQ(connection_state::disconnected, connection->get_connection_state());
 
     auto log_entries = std::dynamic_pointer_cast<memory_log_writer>(writer)->get_log_entries();
-    ASSERT_EQ(4U, log_entries.size());
+    ASSERT_EQ(4U, log_entries.size()) << dump_vector(log_entries);
     ASSERT_EQ("[state change] disconnected -> connecting\n", remove_date_from_log_entry(log_entries[0]));
     ASSERT_EQ("[state change] connecting -> connected\n", remove_date_from_log_entry(log_entries[1]));
     ASSERT_EQ("[state change] connected -> disconnecting\n", remove_date_from_log_entry(log_entries[2]));
@@ -1424,7 +1424,7 @@ TEST(connection_impl_stop, can_start_and_stop_connection)
     mre.get();
 
     auto log_entries = std::dynamic_pointer_cast<memory_log_writer>(writer)->get_log_entries();
-    ASSERT_EQ(4U, log_entries.size());
+    ASSERT_EQ(4U, log_entries.size()) << dump_vector(log_entries);
     ASSERT_EQ("[state change] disconnected -> connecting\n", remove_date_from_log_entry(log_entries[0]));
     ASSERT_EQ("[state change] connecting -> connected\n", remove_date_from_log_entry(log_entries[1]));
     ASSERT_EQ("[state change] connected -> disconnecting\n", remove_date_from_log_entry(log_entries[2]));
@@ -1473,7 +1473,7 @@ TEST(connection_impl_stop, can_start_and_stop_connection_multiple_times)
     }
 
     auto log_entries = memory_writer->get_log_entries();
-    ASSERT_EQ(8U, log_entries.size());
+    ASSERT_EQ(8U, log_entries.size()) << dump_vector(log_entries);
     ASSERT_EQ("[state change] disconnected -> connecting\n", remove_date_from_log_entry(log_entries[0]));
     ASSERT_EQ("[state change] connecting -> connected\n", remove_date_from_log_entry(log_entries[1]));
     ASSERT_EQ("[state change] connected -> disconnecting\n", remove_date_from_log_entry(log_entries[2]));
@@ -1506,13 +1506,13 @@ TEST(connection_impl_stop, dtor_stops_the_connection)
     // The connection_impl will be destroyed when the last reference to shared_ptr holding is released. This can happen
     // on a different thread in which case the dtor will be invoked on a different thread so we need to wait for this
     // to happen and if it does not the test will fail
-    for (int wait_time_ms = 5; wait_time_ms < 100 && memory_writer->get_log_entries().size() < 4; wait_time_ms <<= 1)
+    for (int wait_time_ms = 5; wait_time_ms < 200 && memory_writer->get_log_entries().size() < 4; wait_time_ms <<= 1)
     {
         std::this_thread::sleep_for(std::chrono::milliseconds(wait_time_ms));
     }
 
     auto log_entries = memory_writer->get_log_entries();
-    ASSERT_EQ(4U, log_entries.size());
+    ASSERT_EQ(4U, log_entries.size()) << dump_vector(log_entries);
     ASSERT_EQ("[state change] disconnected -> connecting\n", remove_date_from_log_entry(log_entries[0]));
     ASSERT_EQ("[state change] connecting -> connected\n", remove_date_from_log_entry(log_entries[1]));
     ASSERT_EQ("[state change] connected -> disconnecting\n", remove_date_from_log_entry(log_entries[2]));
