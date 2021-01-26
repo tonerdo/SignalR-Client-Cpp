@@ -417,7 +417,7 @@ namespace signalr
                 // no op after connection started successfully
                 if (*connect_request_done == false)
                 {
-                    if (duration < std::chrono::seconds(5))
+                    if (!disconnect_cts->is_canceled() && duration < std::chrono::seconds(5))
                     {
                         return false;
                     }
