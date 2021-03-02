@@ -22,6 +22,10 @@ if(USE_CPPRESTSDK)
   string(APPEND EXTRA_FLAGS " -DUSE_CPPRESTSDK")
 endif()
 
+if(USE_MSGPACK)
+  string(APPEND EXTRA_FLAGS " -DUSE_MSGPACK")
+endif()
+
 if(INJECT_HEADER_AFTER_STDAFX)
   string(APPEND EXTRA_FLAGS " -DINJECT_HEADER_AFTER_STDAFX=${INJECT_HEADER_AFTER_STDAFX}")
 endif()
@@ -32,6 +36,11 @@ set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} ${CMAKE_LDFLAGS}")
 if(USE_CPPRESTSDK)
   find_package(cpprestsdk REQUIRED)
   set(CPPREST_LIB "cpprestsdk::cpprest")
+endif()
+
+if(USE_MSGPACK)
+  find_package(msgpack CONFIG REQUIRED)
+  set(MSGPACK_LIB "msgpackc-cxx")
 endif()
 
 include_directories (include)

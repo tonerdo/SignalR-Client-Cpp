@@ -1,6 +1,8 @@
 
 
 set (SOURCES
+  binary_message_formatter_tests.cpp
+  binary_message_parser_tests.cpp
   callback_manager_tests.cpp
   case_insensitive_comparison_utils_tests.cpp
   connection_impl_tests.cpp
@@ -17,8 +19,7 @@ set (SOURCES
   test_utils.cpp
   test_websocket_client.cpp
   url_builder_tests.cpp
-  websocket_transport_tests.cpp
-)
+  websocket_transport_tests.cpp)
 
 include_directories(
     ../../src/signalrclient)
