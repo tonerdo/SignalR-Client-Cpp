@@ -27,7 +27,7 @@ namespace signalr
 
         signalr::transfer_format transfer_format() const
         {
-            return transfer_format::binary;
+            return signalr::transfer_format::binary;
         }
 
         ~messagepack_hub_protocol() {}

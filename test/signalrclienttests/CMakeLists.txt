@@ -12,6 +12,7 @@ set (SOURCES
   json_hub_protocol_tests.cpp
   logger_tests.cpp
   memory_log_writer.cpp
+  messagepack_hub_protocol_tests.cpp
   negotiate_tests.cpp
   signalrclienttests.cpp
   stdafx.cpp
@@ -19,7 +20,8 @@ set (SOURCES
   test_utils.cpp
   test_websocket_client.cpp
   url_builder_tests.cpp
-  websocket_transport_tests.cpp)
+  websocket_transport_tests.cpp
+)
 
 include_directories(
     ../../src/signalrclient)

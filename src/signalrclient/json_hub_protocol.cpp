@@ -41,7 +41,7 @@ namespace signalr
             {
                 object["error"] = completion->error;
             }
-            else
+            else if (completion->has_result)
             {
                 object["result"] = createJson(completion->result);
             }
@@ -202,7 +202,7 @@ namespace signalr
             }
 
             hub_message = std::unique_ptr<hub_message_base>(new completion_message(obj.find("invocationId")->second.as_string(),
-                error, result));
+                error, result, has_result));
 
             break;
         }

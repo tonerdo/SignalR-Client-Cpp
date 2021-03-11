@@ -7,6 +7,8 @@
 #include "signalrclient/websocket_client.h"
 #include "signalrclient/http_client.h"
 #include <future>
+#include <signalrclient/signalr_value.h>
+#include <hub_protocol.h>
 
 std::string remove_date_from_log_entry(const std::string &log_entry);
 
@@ -97,3 +99,6 @@ public:
 private:
     std::promise<void> m_promise;
 };
+
+void assert_hub_message_equality(signalr::hub_message_base* expected, signalr::hub_message_base* actual);
+void assert_signalr_value_equality(const signalr::value& expected, const signalr::value& actual);

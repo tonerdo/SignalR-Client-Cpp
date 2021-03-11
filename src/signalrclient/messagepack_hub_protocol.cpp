@@ -188,7 +188,47 @@ namespace signalr
                 pack_messagepack(val, packer);
             }
 
+            // StreamIds
             packer.pack_array(0);
+
+            break;
+        }
+        case message_type::completion:
+        {
+            auto completion = static_cast<completion_message const*>(hub_message);
+
+            // TODO: "null" result is still a result, so need to fix this
+            size_t result_kind = completion->error.empty() ? (completion->result.is_null() ? 2U : 3U) : 1U;
+            packer.pack_array(4U + (result_kind != 2U ? 1U : 0U));
+
+            packer.pack_int(message_type::completion);
+
+            // Headers
+            packer.pack_map(0);
+
+            packer.pack_str((uint32_t)completion->invocation_id.length());
+            packer.pack_str_body(completion->invocation_id.data(), (uint32_t)completion->invocation_id.length());
+
+            packer.pack_int((int)result_kind);
+            switch (result_kind)
+            {
+            case 1:
+                packer.pack_str((uint32_t)completion->error.length());
+                packer.pack_str_body(completion->error.data(), (uint32_t)completion->error.length());
+                break;
+            case 3:
+                pack_messagepack(completion->result, packer);
+                break;
+            }
+
+            break;
+        }
+        case message_type::ping:
+        {
+            //auto ping = static_cast<ping_message const*>(hub_message);
+
+            packer.pack_array(1);
+            packer.pack_int(message_type::ping);
 
             break;
         }
@@ -224,7 +264,12 @@ namespace signalr
             memcpy(pac.buffer(), remaining_message, length_of_message);
             pac.buffer_consumed(length_of_message);
             msgpack::object_handle obj_handle;
-            pac.next(obj_handle);
+
+            if (!pac.next(obj_handle))
+            {
+                throw signalr_exception("messagepack object was incomplete");
+            }
+
             auto& msgpack_obj = obj_handle.get();
 
             if (msgpack_obj.type != msgpack::type::ARRAY)
@@ -232,12 +277,17 @@ namespace signalr
                 throw signalr_exception("Message was not an 'array' type");
             }
 
+            auto num_elements_of_message = msgpack_obj.via.array.size;
             if (msgpack_obj.via.array.size == 0)
             {
                 throw signalr_exception("Message was an empty array");
             }
 
             auto msgpack_obj_index = msgpack_obj.via.array.ptr;
+            if (msgpack_obj_index->type != msgpack::type::POSITIVE_INTEGER)
+            {
+                throw signalr_exception("reading 'type' as int failed");
+            }
             auto type = msgpack_obj_index->via.i64;
             ++msgpack_obj_index;
 
@@ -245,6 +295,11 @@ namespace signalr
             {
             case message_type::invocation:
             {
+                if (num_elements_of_message < 5)
+                {
+                    throw signalr_exception("invocation message has too few properties");
+                }
+
                 // HEADERS
                 ++msgpack_obj_index;
 
@@ -253,10 +308,24 @@ namespace signalr
                 {
                     invocation_id.append(msgpack_obj_index->via.str.ptr, msgpack_obj_index->via.str.size);
                 }
+                else if (msgpack_obj_index->type != msgpack::type::NIL)
+                {
+                    throw signalr_exception("reading 'invocationId' as string failed");
+                }
                 ++msgpack_obj_index;
+
+                if (msgpack_obj_index->type != msgpack::type::STR)
+                {
+                    throw signalr_exception("reading 'target' as string failed");
+                }
 
                 std::string target(msgpack_obj_index->via.str.ptr, msgpack_obj_index->via.str.size);
                 ++msgpack_obj_index;
+
+                if (msgpack_obj_index->type != msgpack::type::ARRAY)
+                {
+                    throw signalr_exception("reading 'arguments' as array failed");
+                }
 
                 vec.emplace_back(std::unique_ptr<hub_message_base>(
                     new invocation_message(std::move(invocation_id), std::move(target), createValue(*msgpack_obj_index))));
@@ -268,32 +337,58 @@ namespace signalr
             }
             case message_type::completion:
             {
+                if (num_elements_of_message < 4)
+                {
+                    throw signalr_exception("completion message has too few properties");
+                }
+
                 // HEADERS
                 ++msgpack_obj_index;
 
+                if (msgpack_obj_index->type != msgpack::type::STR)
+                {
+                    throw signalr_exception("reading 'invocationId' as string failed");
+                }
                 std::string invocation_id(msgpack_obj_index->via.str.ptr, msgpack_obj_index->via.str.size);
                 ++msgpack_obj_index;
 
-                auto result_type = msgpack_obj_index->via.i64;
+                if (msgpack_obj_index->type != msgpack::type::POSITIVE_INTEGER)
+                {
+                    throw signalr_exception("reading 'result_kind' as int failed");
+                }
+                auto result_kind = msgpack_obj_index->via.i64;
                 ++msgpack_obj_index;
+
+                if (num_elements_of_message < 5 && result_kind != 2)
+                {
+                    throw signalr_exception("completion message has too few properties");
+                }
 
                 std::string error;
                 signalr::value result;
                 // 1: error
                 // 2: void result
                 // 3: non void result
-                if (result_type == 1)
+                if (result_kind == 1)
                 {
-                    error = std::string(msgpack_obj_index->via.str.ptr, msgpack_obj_index->via.str.size);
+                    if (msgpack_obj_index->type != msgpack::type::STR)
+                    {
+                        throw signalr_exception("reading 'error' as string failed");
+                    }
+                    error.append(msgpack_obj_index->via.str.ptr, msgpack_obj_index->via.str.size);
                 }
-                else if (result_type == 3)
+                else if (result_kind == 3)
                 {
                     result = createValue(*msgpack_obj_index);
                 }
-                ++msgpack_obj_index;
 
                 vec.emplace_back(std::unique_ptr<hub_message_base>(
-                    new completion_message(std::move(invocation_id), std::move(error), std::move(result))));
+                    new completion_message(std::move(invocation_id), std::move(error), std::move(result), result_kind == 3)));
+                break;
+            }
+            case message_type::ping:
+            {
+                vec.emplace_back(std::unique_ptr<hub_message_base>(new ping_message()));
                 break;
             }
             // TODO: other message types

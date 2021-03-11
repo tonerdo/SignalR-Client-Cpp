@@ -323,7 +323,7 @@ namespace signalr
         if (!completion->error.empty())
         {
             error = completion->error.data();
-        }*/
+        }
 
         // TODO: consider transferring ownership of 'result' so that if we run user callbacks on a different thread we don't need to
         // worry about object lifetime
