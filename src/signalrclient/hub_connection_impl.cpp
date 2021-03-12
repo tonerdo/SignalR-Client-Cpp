@@ -235,8 +235,11 @@ namespace signalr
                 if (found != obj.end())
                 {
                     auto& error = found->second.as_string();
-                    m_logger.log(trace_level::errors, std::string("handshake error: ")
-                        .append(error));
+                    if (m_logger.is_enabled(trace_level::error))
+                    {
+                        m_logger.log(trace_level::error, std::string("handshake error: ")
+                            .append(error));
+                    }
                     m_handshakeTask->set(std::make_exception_ptr(signalr_exception(std::string("Received an error during handshake: ").append(error))));
                     return;
                 }
@@ -264,8 +267,11 @@ namespace signalr
             {
                 if (!val.is_map())
                 {
-                    m_logger.log(trace_level::info, std::string("unexpected response received from the server: ")
-                        .append(response));
+                    if (m_logger.is_enabled(trace_level::info))
+                    {
+                        m_logger.log(trace_level::info, std::string("unexpected response received from the server: ")
+                            .append(response));
+                    }
 
                     return;
                 }
@@ -320,10 +326,13 @@ namespace signalr
         }
         catch (const std::exception &e)
         {
-            m_logger.log(trace_level::errors, std::string("error occured when parsing response: ")
-                .append(e.what())
-                .append(". response: ")
-                .append(response));
+            if (m_logger.is_enabled(trace_level::error))
+            {
+                m_logger.log(trace_level::error, std::string("error occured when parsing response: ")
+                    .append(e.what())
+                    .append(". response: ")
+                    .append(response));
+            }
 
             // TODO: Consider passing "reason" exception to stop
             m_connection->stop([](std::exception_ptr) {});
@@ -346,7 +355,10 @@ namespace signalr
         auto& id = invocationId.as_string();
         if (!m_callback_manager.invoke_callback(id, message, true))
         {
-            m_logger.log(trace_level::info, std::string("no callback found for id: ").append(id));
+            if (m_logger.is_enabled(trace_level::info))
+            {
+                m_logger.log(trace_level::info, std::string("no callback found for id: ").append(id));
+            }
             return false;
         }
 
